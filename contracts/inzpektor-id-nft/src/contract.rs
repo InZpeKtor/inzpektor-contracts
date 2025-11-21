@@ -2,14 +2,14 @@
 // Compatible with OpenZeppelin Stellar Soroban Contracts ^0.4.1
 
 
-use soroban_sdk::{Address, Env, String, contract, contractimpl, contracttype, Map};
+use soroban_sdk::{Address, Env, String, contract, contractimpl, contracttype};
 use stellar_access::ownable::{self as ownable};
 use stellar_macros::{default_impl, only_owner};
 use stellar_tokens::non_fungible::{Base, NonFungibleToken, enumerable::{NonFungibleEnumerable, Enumerable}};
 
 #[contracttype]
 pub enum DataKey {
-    Expirations, // Map<u32, u64> - token_id -> expiration_timestamp
+    Expiration(u32), // token_id -> expiration_timestamp
 }
 
 #[contract]
@@ -23,10 +23,6 @@ impl INZPEKTORID {
         let symbol = String::from_str(&e, "IZK");
         Base::set_metadata(&e, uri, name, symbol);
         ownable::set_owner(e, &owner);
-
-        // Initialize empty expirations map
-        let expirations: Map<u32, u64> = Map::new(&e);
-        e.storage().instance().set(&DataKey::Expirations, &expirations);
     }
 
     #[only_owner]
@@ -38,23 +34,17 @@ impl INZPEKTORID {
         Enumerable::sequential_mint(e, &to);
 
         // Store the expiration timestamp for this specific token
-        let mut expirations: Map<u32, u64> = e.storage()
-            .instance()
-            .get(&DataKey::Expirations)
-            .unwrap_or(Map::new(&e));
-        expirations.set(token_id, expires_at);
-        e.storage().instance().set(&DataKey::Expirations, &expirations);
+        e.storage().instance().set(&DataKey::Expiration(token_id), &expires_at);
 
         token_id
     }
 
     /// Get the expiration timestamp for a specific token
     pub fn get_expiration(e: Env, token_id: u32) -> u64 {
-        let expirations: Map<u32, u64> = e.storage()
+        e.storage()
             .instance()
-            .get(&DataKey::Expirations)
-            .unwrap_or(Map::new(&e));
-        expirations.get(token_id).unwrap_or(0)
+            .get(&DataKey::Expiration(token_id))
+            .unwrap_or(0)
     }
 
     /// Check if a token is expired

@@ -103,4 +103,197 @@ fn test_expired_token() {
     assert_eq!(client.owner_of(&token_id), user);
 }
 
-// Add more tests bellow
+#[test]
+fn test_multiple_users_minting() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_addr = env.register(INZPEKTORID, ());
+    let client = INZPEKTORIDClient::new(&env, &contract_addr);
+
+    let owner = Address::generate(&env);
+    let user1 = Address::generate(&env);
+    let user2 = Address::generate(&env);
+    let user3 = Address::generate(&env);
+
+    client.initialize(&owner);
+
+    let current_time = env.ledger().timestamp();
+    let one_year: u64 = 365 * 24 * 60 * 60;
+
+    // Mint tokens to different users
+    let token_id_1 = client.mint(&user1, &(current_time + one_year));
+    let token_id_2 = client.mint(&user2, &(current_time + one_year * 2));
+    let token_id_3 = client.mint(&user1, &(current_time + one_year * 3));
+    let token_id_4 = client.mint(&user3, &(current_time + one_year));
+
+    // Verify token IDs are sequential
+    assert_eq!(token_id_1, 0);
+    assert_eq!(token_id_2, 1);
+    assert_eq!(token_id_3, 2);
+    assert_eq!(token_id_4, 3);
+
+    // Verify ownership
+    assert_eq!(client.owner_of(&token_id_1), user1);
+    assert_eq!(client.owner_of(&token_id_2), user2);
+    assert_eq!(client.owner_of(&token_id_3), user1);
+    assert_eq!(client.owner_of(&token_id_4), user3);
+
+    // Verify balances
+    assert_eq!(client.balance(&user1), 2);
+    assert_eq!(client.balance(&user2), 1);
+    assert_eq!(client.balance(&user3), 1);
+
+    // Verify total supply
+    assert_eq!(client.total_supply(), 4);
+}
+
+#[test]
+fn test_different_expiration_per_token() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_addr = env.register(INZPEKTORID, ());
+    let client = INZPEKTORIDClient::new(&env, &contract_addr);
+
+    let owner = Address::generate(&env);
+    let user = Address::generate(&env);
+
+    client.initialize(&owner);
+
+    let current_time = env.ledger().timestamp();
+    let one_year: u64 = 365 * 24 * 60 * 60;
+
+    // Mint tokens with varying expiration times
+    let token_id_1 = client.mint(&user, &(current_time + one_year));
+    let token_id_2 = client.mint(&user, &(current_time + one_year * 2));
+    let token_id_3 = client.mint(&user, &(current_time + one_year * 5));
+
+    // Verify each token has unique expiration
+    assert_eq!(client.get_expiration(&token_id_1), current_time + one_year);
+    assert_eq!(client.get_expiration(&token_id_2), current_time + one_year * 2);
+    assert_eq!(client.get_expiration(&token_id_3), current_time + one_year * 5);
+
+    // All should not be expired
+    assert_eq!(client.is_expired(&token_id_1), false);
+    assert_eq!(client.is_expired(&token_id_2), false);
+    assert_eq!(client.is_expired(&token_id_3), false);
+}
+
+#[test]
+fn test_expiration_edge_cases() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_addr = env.register(INZPEKTORID, ());
+    let client = INZPEKTORIDClient::new(&env, &contract_addr);
+
+    let owner = Address::generate(&env);
+    let user = Address::generate(&env);
+
+    client.initialize(&owner);
+
+    // Test with expiration set to 0 (no expiration)
+    let token_id_1 = client.mint(&user, &0);
+    assert_eq!(client.get_expiration(&token_id_1), 0);
+    assert_eq!(client.is_expired(&token_id_1), false);
+
+    // Test with very far future expiration
+    let token_id_2 = client.mint(&user, &u64::MAX);
+    assert_eq!(client.get_expiration(&token_id_2), u64::MAX);
+    assert_eq!(client.is_expired(&token_id_2), false);
+
+    // Test with near-current time expiration
+    let current_time = env.ledger().timestamp();
+    let token_id_3 = client.mint(&user, &(current_time + 1));
+    assert_eq!(client.get_expiration(&token_id_3), current_time + 1);
+    assert_eq!(client.is_expired(&token_id_3), false);
+}
+
+#[test]
+fn test_metadata() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_addr = env.register(INZPEKTORID, ());
+    let client = INZPEKTORIDClient::new(&env, &contract_addr);
+
+    let owner = Address::generate(&env);
+
+    client.initialize(&owner);
+
+    // Verify metadata
+    assert_eq!(client.name(), String::from_str(&env, "INZPEKTOR-ID"));
+    assert_eq!(client.symbol(), String::from_str(&env, "IZK"));
+}
+
+#[test]
+fn test_zero_tokens_initially() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_addr = env.register(INZPEKTORID, ());
+    let client = INZPEKTORIDClient::new(&env, &contract_addr);
+
+    let owner = Address::generate(&env);
+    let user = Address::generate(&env);
+
+    client.initialize(&owner);
+
+    // Verify initial state - no tokens minted
+    assert_eq!(client.total_supply(), 0);
+    assert_eq!(client.balance(&user), 0);
+}
+
+#[test]
+fn test_total_supply_increases() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_addr = env.register(INZPEKTORID, ());
+    let client = INZPEKTORIDClient::new(&env, &contract_addr);
+
+    let owner = Address::generate(&env);
+    let user = Address::generate(&env);
+
+    client.initialize(&owner);
+
+    let current_time = env.ledger().timestamp();
+    let one_year: u64 = 365 * 24 * 60 * 60;
+
+    // Mint tokens one by one and verify supply increases
+    assert_eq!(client.total_supply(), 0);
+
+    client.mint(&user, &(current_time + one_year));
+    assert_eq!(client.total_supply(), 1);
+
+    client.mint(&user, &(current_time + one_year));
+    assert_eq!(client.total_supply(), 2);
+
+    client.mint(&user, &(current_time + one_year));
+    assert_eq!(client.total_supply(), 3);
+}
+
+#[test]
+fn test_token_uri() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_addr = env.register(INZPEKTORID, ());
+    let client = INZPEKTORIDClient::new(&env, &contract_addr);
+
+    let owner = Address::generate(&env);
+    let user = Address::generate(&env);
+
+    client.initialize(&owner);
+
+    let current_time = env.ledger().timestamp();
+    let one_year: u64 = 365 * 24 * 60 * 60;
+
+    // Mint token
+    let token_id = client.mint(&user, &(current_time + one_year));
+
+    // Get token URI - should be base_uri + token_id
+    let token_uri = client.token_uri(&token_id);
+    assert_eq!(token_uri, String::from_str(&env, "https://www.inzpektor.com/ids/0"));
+}
