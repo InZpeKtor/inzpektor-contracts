@@ -53,6 +53,84 @@ impl InzpektorHandlerContract {
 
       String::from_str(&e, "Minted INZPEKTOR-ID NFT successfully")
     }
+
+    pub fn get_nft_balance(e: Env, user: Address) -> u32 {
+        let inzpektor_id_contract_address: Address = e.storage().instance().get(&DataKey::InzpektorIDNFTContract).expect("INZPEKTOR-ID contract not set");
+        
+        let balance_fn = Symbol::new(&e, "balance");
+        let balance: u32 = e.invoke_contract(
+            &inzpektor_id_contract_address,
+            &balance_fn,
+            vec![&e, user.into_val(&e)]
+        );
+        
+        balance
+    }
+
+    pub fn get_admin(e: Env) -> Address {
+        e.storage().instance().get(&DataKey::Admin).expect("admin not set")
+    }
+
+    pub fn get_verifier_contract(e: Env) -> Address {
+        e.storage().instance().get(&DataKey::ZKVerifierContract).expect("verifier not set")
+    }
+
+    pub fn get_nft_contract(e: Env) -> Address {
+        e.storage().instance().get(&DataKey::InzpektorIDNFTContract).expect("NFT contract not set")
+    }
+
+    pub fn get_nft_owner(e: Env, token_id: u32) -> Address {
+        let inzpektor_id_contract_address: Address = e.storage().instance().get(&DataKey::InzpektorIDNFTContract).expect("INZPEKTOR-ID contract not set");
+        
+        let owner_fn = Symbol::new(&e, "owner_of");
+        let owner: Address = e.invoke_contract(
+            &inzpektor_id_contract_address,
+            &owner_fn,
+            vec![&e, token_id.into_val(&e)]
+        );
+        
+        owner
+    }
+
+    pub fn get_nft_metadata(e: Env) -> (String, String, String) {
+        let inzpektor_id_contract_address: Address = e.storage().instance().get(&DataKey::InzpektorIDNFTContract).expect("INZPEKTOR-ID contract not set");
+        
+        let name_fn = Symbol::new(&e, "name");
+        let name: String = e.invoke_contract(
+            &inzpektor_id_contract_address,
+            &name_fn,
+            vec![&e]
+        );
+
+        let symbol_fn = Symbol::new(&e, "symbol");
+        let symbol: String = e.invoke_contract(
+            &inzpektor_id_contract_address,
+            &symbol_fn,
+            vec![&e]
+        );
+
+        let base_uri_fn = Symbol::new(&e, "base_uri");
+        let base_uri: String = e.invoke_contract(
+            &inzpektor_id_contract_address,
+            &base_uri_fn,
+            vec![&e]
+        );
+        
+        (name, symbol, base_uri)
+    }
+
+    pub fn get_nft_expiration(e: Env) -> u64 {
+        let inzpektor_id_contract_address: Address = e.storage().instance().get(&DataKey::InzpektorIDNFTContract).expect("INZPEKTOR-ID contract not set");
+        
+        let expiration_fn = Symbol::new(&e, "get_expiration_timestamp");
+        let expiration: u64 = e.invoke_contract(
+            &inzpektor_id_contract_address,
+            &expiration_fn,
+            vec![&e]
+        );
+        
+        expiration
+    }
 }
 
 mod test;

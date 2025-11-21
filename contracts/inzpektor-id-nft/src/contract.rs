@@ -21,7 +21,6 @@ impl INZPEKTORID {
         e.storage().instance().set(&symbol_short!("expires"), &expires_at);
     }
 
-    /// Get the expiration timestamp for this NFT collection
     pub fn get_expiration_timestamp(e: Env) -> u64 {
         e.storage().instance().get(&symbol_short!("expires")).unwrap_or(0)
     }
