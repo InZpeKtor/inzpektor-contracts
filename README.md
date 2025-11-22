@@ -60,7 +60,7 @@ inzpektor-contracts/
 
 ```bash
 # Clone the repository
-git clone https://github.com/InZpeKtor/inzpektor-contracts.git
+git clone https://github.com/INZPEKTOR/inzpektor-contracts.git
 cd inzpektor-contracts
 
 # Add wasm target
@@ -184,14 +184,6 @@ cargo clippy --all-targets --all-features
 - ⚠️ Expiration timestamps are set at mint time and immutable
 - ⚠️ Expired NFTs can still be transferred (expiration is informational)
 - ⚠️ ZK proof verification happens on-chain
-
-## Roadmap
-
-- [ ] Add burnable NFT extension for expired tokens
-- [ ] Implement batch minting for efficiency
-- [ ] Add metadata extension for storing credential types
-- [ ] Create renewal mechanism for expired tokens
-- [ ] Add event emissions for better indexing
 
 ## Contributing
 
