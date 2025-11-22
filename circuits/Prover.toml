@@ -1,0 +1,3 @@
+kyc_passed = true
+ofac_passed = true
+usdc_not_blacklisted = true
