@@ -29,7 +29,7 @@ If any check fails, the circuit returns `false`, but the specific failing check 
 - **Private Inputs**: All compliance check results are private witness values
 - **Public Output**: Only the final result (pass/fail) is revealed
 - **Zero-Knowledge**: The verifier learns nothing about which specific checks failed
-- **User ID**: Hashed user identifier is public for linking to NFT issuance
+- **No User Identifier**: Circuit focuses purely on compliance verification without linking to specific identities
 
 ## Prerequisites
 
@@ -68,13 +68,9 @@ nargo test
 Edit `Prover.toml` with actual values:
 
 ```toml
-user_id = "0x..."
 kyc_passed = true
 ofac_passed = true
 usdc_not_blacklisted = true
-kyc_signature = "0x..."
-ofac_signature = "0x..."
-usdc_signature = "0x..."
 ```
 
 ### 2. Generate Proof
@@ -95,31 +91,25 @@ nargo verify
 
 ## Circuit Structure
 
-### Public Inputs
-- `user_id`: Hashed user identifier (Field)
-
 ### Private Inputs (Witness)
 - `kyc_passed`: Boolean flag for KYC verification
 - `ofac_passed`: Boolean flag for OFAC check
 - `usdc_not_blacklisted`: Boolean flag for USDC blacklist check
-- `kyc_signature`: Signature from KYC provider
-- `ofac_signature`: Signature from OFAC checker
-- `usdc_signature`: Signature from USDC contract
 
 ### Output
-- `bool`: Returns `true` if all checks pass, `false` otherwise
+- `pub bool`: Returns `true` if all checks pass, `false` otherwise
 
 ## Integration with Soroban
 
-The generated proof is verified by the `ultrahonk-zk` Soroban contract:
+The generated proof is verified by the `ultrahonk-zk` Soroban contract. The wallet address is linked at the Soroban level when minting the NFT:
 
 ```rust
 // On Soroban (simplified)
 let proof_valid = verify_ultrahonk_proof(&verification_key, &proof, &public_inputs);
 
 if proof_valid {
-    // Mint INZPEKTOR-ID NFT with expiration
-    let token_id = nft_contract.mint(user, expires_at);
+    // Mint INZPEKTOR-ID NFT to the caller's wallet with expiration
+    let token_id = nft_contract.mint(caller_wallet, expires_at);
 }
 ```
 
@@ -156,18 +146,19 @@ bb verify -k ./target/vk -p ./proofs/proof
 
 ## Security Considerations
 
-1. **Signature Verification**: In production, implement proper cryptographic signature verification for each compliance provider
+1. **Data Integrity**: Ensure compliance data sources are trustworthy and tamper-proof
 2. **Timestamp Validity**: Add timestamp checks to ensure compliance data is recent
 3. **Revocation**: Implement a mechanism to revoke proofs if compliance status changes
-4. **User ID Binding**: Ensure user_id cannot be reused or manipulated
+4. **Proof Freshness**: Limit the validity period of generated proofs
 
 ## Future Enhancements
 
 - [ ] Add timestamp constraints for data freshness
-- [ ] Implement proper signature verification using ECDSA
-- [ ] Add support for additional compliance checks
+- [ ] Add public input for wallet address binding at circuit level
+- [ ] Add support for additional compliance checks (AML, sanctions lists)
 - [ ] Implement proof batching for multiple users
 - [ ] Add revocation mechanism using nullifiers
+- [ ] Implement signature verification for compliance data providers
 
 ## Resources
 
