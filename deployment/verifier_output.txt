@@ -1,0 +1,4 @@
+ℹ️ Simulating install transaction…
+❌ error: transaction simulation failed: HostError: Error(Budget, ExceededLimit)
+DebugInfo not available
+
